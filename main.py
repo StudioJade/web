@@ -44,10 +44,65 @@ def generate_html(members_list, heads_list, id_list):
     feedback = '''
 <!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0/css/bulma.min.css">
-<h1 class="title">StudioJade官方网站</h1>
+<title>StudioJade官方网站</title>
+<link rel="icon" href="https://cdn.jsdelivr.net/gh/StudioJade/web/logo.png" type="image/x-icon">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma/css/bulma.min.css">
 '''
-    feedback += '<h2 class="subtitle">StudioJade成员</h2>'
+    # 导航栏
+    feedback += '''
+<nav class="navbar" role="navigation" aria-label="main navigation">
+  <div class="navbar-brand">
+
+    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+      <span aria-hidden="true"></span>
+    </a>
+  </div>
+
+  <div id="navbarBasicExample" class="navbar-menu">
+    <div class="navbar-start">
+      <a class="navbar-item" href="https://github.com/StudioJade/">
+        Github
+      </a>
+
+      <a class="navbar-item" href="https://40code.com/#page=studio&id=691">
+        40code
+      </a>
+
+      <div class="navbar-item has-dropdown is-hoverable">
+        <a class="navbar-link">
+          更多
+        </a>
+
+        <div class="navbar-dropdown">
+          <a class="navbar-item" href="https://github.com/StudioJade/web/issues/new">
+            反馈此网站的bug
+          </a>
+          <a class="navbar-item" href="https://github.com/orgs/StudioJade/repositories">
+            开源存储库
+          </a>
+          <a class="navbar-item" href="https://github.com/wumingshiali">
+            室长Github
+          </a>
+          <a class="navbar-item" href="https://40code.com/#page=user&id=2594">
+            室长40code
+          </a>
+          <a class="navbar-item" href="https://无名氏.top/">
+            室长个人网站
+          </a>
+          <a class="navbar-item" href="https://bulma.org.cn/">
+            使用的CSS
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+'''
+    feedback += '''<h1 class="title">StudioJade官方网站</h1>
+<h2 class="subtitle">StudioJade成员</h2>'''
     for i in range(len(members_list)):
         # 构建用户个人页面链接
         profile_url = 'https://40code.com/#page=user&id=' + str(id_list[i])
