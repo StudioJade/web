@@ -73,6 +73,9 @@ def generate_html(members_list, heads_list, id_list):
           <a class="navbar-item" href="https://github.com/StudioJade/web/issues/new">
             反馈此网站的bug
           </a>
+          <a class="navbar-item" href="https://github.com/StudioJade/web">
+            本页面的Github
+          </a>
           <a class="navbar-item" href="https://github.com/orgs/StudioJade/repositories">
             开源存储库
           </a>
@@ -88,16 +91,29 @@ def generate_html(members_list, heads_list, id_list):
           <a class="navbar-item" href="https://bulma.org.cn/">
             使用的CSS
           </a>
+          <a class="navbar-item" href="./contributors">
+            贡献者
+          </a>
         </div>
       </div>
     </div>
   </div>
 </nav>
 '''
+    y = int(t.strftime("%Y")) - 2024
+    m = int(t.strftime("%m")) - 2
+    d = int(t.strftime("%d")) - 16
+    if d < 0:
+        m -= 1
+        d += 30
+    if m < 0:
+        y -= 1
+        m += 12
     feedback += '''
 <h5 class="subtitle is-5">工作室简介</h5>
+工作室flag:宁为玉碎，不为瓦全。<br>
 本工作室创建于2024/02/16，距今已有
-''' + str(int(t.strftime("%Y")) - 2025) + str(int(t.strftime("%m")) - 2) + str(int(t.strftime("%d")) - 16)
+''' + str(y) + '年' + str(m) + '个月' + str(d) + '天'
     feedback += '''
 <h5 class="subtitle is-5">StudioJade成员</h5>'''
     for i in range(len(members_list)):
@@ -124,6 +140,15 @@ def home():
     
     # 生成回复
     return generate_html(members_list, heads_list, id_list)
+@app.route('/contributors')
+def contributors():
+    """贡献者路由，显示所有贡献者信息"""
+    return '''
+<a href="https://github.com/studiojade/web/graphs/contributors">
+    <img src="https://contri.buzz/api/wall?repo=studiojade/web&onlyAvatars=true" alt="Contributors' Wall for studiojade/web" />
+</a>
+'''
+
 
 if __name__ == '__main__':
     app.run(debug=True)
