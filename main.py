@@ -60,7 +60,7 @@ def generate_html(members_list, heads_list, id_list):
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="StudioJade工作室官方网站">
     <title>StudioJade网站</title>
-    <link rel="icon" href="https://jiashu.jsdmirror.com/gh/StudioJade/web/logo.png" type="image/x-icon">
+    <link rel="icon" href="https://jiashu.jsdmirror.com/gh/StudioJade/web/logo.webp" type="image/x-icon">
     <link rel="stylesheet" href="https://s4.zstatic.net/npm/bulma/css/bulma.min.css">
 </head>
 <body>
@@ -81,7 +81,7 @@ def generate_html(members_list, heads_list, id_list):
     <div class="navbar-brand">
       <a class="navbar-item" href="https://sj.无名氏.top">
         <figure class="image is-48x48 image is-1by1">
-          <img src="https://cdn.jsdelivr.net/gh/StudioJade/web/logo.png" width="32" height="32">
+          <img src="https://jiashu.jsdmirror.com/gh/StudioJade/web/logo.webp" width="32" height="32">
         </figure>
         <h3 class="title is-3">StudioJade</h3>
       </a>
