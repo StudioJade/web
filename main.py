@@ -1,14 +1,343 @@
-from flask import Flask, make_response, request, jsonify
+from flask import Flask, make_response, request, jsonify, render_template_string, render_template
 import requests as r
 import datetime as dt
+from datetime import datetime
 import time as t
 import json
+import math
+import os
 
 app = Flask(__name__)
 
+# 添加统计页面路由
+@app.route('/cm')
+def stats_page():
+    return render_template('stats.html')
+
+# 修改/metrics路由返回JSON数据
+@app.route('/metrics')
+def metrics_json():
+    """返回JSON格式的性能统计数据"""
+    stats = {
+        'cache_efficiency': {
+            'hits': performance_metrics['cache_hits'],
+            'misses': performance_metrics['cache_misses'],
+            'hit_rate': f"{(performance_metrics['cache_hits'] / (performance_metrics['cache_hits'] + performance_metrics['cache_misses']) * 100):.2f}%" if performance_metrics['cache_hits'] + performance_metrics['cache_misses'] > 0 else "0%"
+        },
+        'response_times': {
+            'average': f"{sum(performance_metrics['response_times']) / len(performance_metrics['response_times']):.3f}s" if performance_metrics['response_times'] else "0s",
+            'p95': f"{sorted(performance_metrics['response_times'])[int(len(performance_metrics['response_times'])*0.95)]:.3f}s" if len(performance_metrics['response_times']) > 20 else "N/A",
+            'p99': f"{sorted(performance_metrics['response_times'])[int(len(performance_metrics['response_times'])*0.99)]:.3f}s" if len(performance_metrics['response_times']) > 100 else "N/A"
+        },
+        'web_vitals': {
+            'TTFB': {
+                'avg': f"{sum(performance_metrics['ttfb']) / len(performance_metrics['ttfb']):.0f}ms" if performance_metrics['ttfb'] else "0ms",
+                'p75': f"{sorted(performance_metrics['ttfb'])[int(len(performance_metrics['ttfb'])*0.75)]:.0f}ms" if performance_metrics['ttfb'] else "N/A"
+            },
+            'FCP': {
+                'avg': f"{sum(performance_metrics['fcp']) / len(performance_metrics['fcp']):.0f}ms" if performance_metrics['fcp'] else "0ms",
+                'p75': f"{sorted(performance_metrics['fcp'])[int(len(performance_metrics['fcp'])*0.75)]:.0f}ms" if performance_metrics['fcp'] else "N/A"
+            },
+            'LCP': {
+                'avg': f"{sum(performance_metrics['lcp']) / len(performance_metrics['lcp']):.0f}ms" if performance_metrics['lcp'] else "0ms",
+                'p75': f"{sorted(performance_metrics['lcp'])[int(len(performance_metrics['lcp'])*0.75)]:.0f}ms" if performance_metrics['lcp'] else "N/A"
+            },
+            'FID': {
+                'avg': f"{sum(performance_metrics['fid']) / len(performance_metrics['fid']):.0f}ms" if performance_metrics['fid'] else "0ms",
+                'p75': f"{sorted(performance_metrics['fid'])[int(len(performance_metrics['fid'])*0.75)]:.0f}ms" if performance_metrics['fid'] else "N/A"
+            },
+            'CLS': {
+                'avg': f"{sum(performance_metrics['cls']) / len(performance_metrics['cls']):.3f}" if performance_metrics['cls'] else "0",
+                'p75': f"{sorted(performance_metrics['cls'])[int(len(performance_metrics['cls'])*0.75)]:.3f}" if performance_metrics['cls'] else "N/A"
+            }
+        },
+        'api_stats': {
+            'total_calls': performance_metrics['api_calls'],
+            'errors': performance_metrics['errors'],
+            'error_rate': f"{(performance_metrics['errors'] / performance_metrics['api_calls'] * 100):.2f}%" if performance_metrics['api_calls'] > 0 else "0%"
+        }
+    }
+    return jsonify(stats)
+
 # 性能数据收集路由
-@app.route('/collect-metrics', methods=['POST'])
+@app.route('/cm', methods=['POST'])
 def collect_metrics():
+    data = request.get_json()
+    if data:
+        # 更新设备统计
+        device_type = data.get('deviceType', 'desktop')
+        performance_metrics['device_stats'][device_type] = performance_metrics['device_stats'].get(device_type, 0) + 1
+        
+        # 更新连接类型统计
+        connection_type = data.get('connectionType', 'other')
+        performance_metrics['connection_types'][connection_type] = performance_metrics['connection_types'].get(connection_type, 0) + 1
+        
+        # 更新性能指标
+        if 'ttfb' in data:
+            performance_metrics['ttfb'].append(data['ttfb'])
+        if 'fcp' in data:
+            performance_metrics['fcp'].append(data['fcp'])
+        if 'lcp' in data:
+            performance_metrics['lcp'].append(data['lcp'])
+        if 'fid' in data:
+            performance_metrics['fid'].append(data['fid'])
+        if 'cls' in data:
+            performance_metrics['cls'].append(data['cls'])
+        
+        # 更新资源使用统计
+        if 'memoryUsage' in data:
+            performance_metrics['memory_usage'].append(data['memoryUsage'])
+        if 'bandwidthUsage' in data:
+            performance_metrics['bandwidth_usage'].append(data['bandwidthUsage'])
+            
+        return jsonify({"status": "success"})
+    return jsonify({"status": "error", "message": "No data provided"}), 400
+
+@app.route('/metrics')
+def view_metrics():
+    """显示性能统计数据的路由"""
+    # 计算平均值和百分比
+    def calculate_avg(values):
+        return sum(values) / len(values) if values else 0
+    
+    def calculate_percentile(values, percentile):
+        if not values:
+            return 0
+        sorted_values = sorted(values)
+        k = (len(sorted_values) - 1) * percentile
+        f = math.floor(k)
+        c = math.ceil(k)
+        if f == c:
+            return sorted_values[int(k)]
+        d0 = sorted_values[int(f)] * (c - k)
+        d1 = sorted_values[int(c)] * (k - f)
+        return d0 + d1
+    
+    stats = {
+        'cache_efficiency': {
+            'hits': performance_metrics['cache_hits'],
+            'misses': performance_metrics['cache_misses'],
+            'hit_rate': f"{(performance_metrics['cache_hits'] / (performance_metrics['cache_hits'] + performance_metrics['cache_misses']) * 100):.2f}%" if performance_metrics['cache_hits'] + performance_metrics['cache_misses'] > 0 else "0%"
+        },
+        'response_times': {
+            'average': f"{calculate_avg(performance_metrics['response_times']):.3f}s",
+            'p95': f"{calculate_percentile(performance_metrics['response_times'], 0.95):.3f}s",
+            'p99': f"{calculate_percentile(performance_metrics['response_times'], 0.99):.3f}s",
+            'samples': len(performance_metrics['response_times'])
+        },
+        'web_vitals': {
+            'TTFB': {
+                'avg': f"{calculate_avg(performance_metrics['ttfb']):.0f}ms",
+                'p75': f"{calculate_percentile(performance_metrics['ttfb'], 0.75):.0f}ms"
+            },
+            'FCP': {
+                'avg': f"{calculate_avg(performance_metrics['fcp']):.0f}ms",
+                'p75': f"{calculate_percentile(performance_metrics['fcp'], 0.75):.0f}ms"
+            },
+            'LCP': {
+                'avg': f"{calculate_avg(performance_metrics['lcp']):.0f}ms",
+                'p75': f"{calculate_percentile(performance_metrics['lcp'], 0.75):.0f}ms"
+            },
+            'FID': {
+                'avg': f"{calculate_avg(performance_metrics['fid']):.0f}ms",
+                'p75': f"{calculate_percentile(performance_metrics['fid'], 0.75):.0f}ms"
+            },
+            'CLS': {
+                'avg': f"{calculate_avg(performance_metrics['cls']):.3f}",
+                'p75': f"{calculate_percentile(performance_metrics['cls'], 0.75):.3f}"
+            }
+        },
+        'api_stats': {
+            'total_calls': performance_metrics['api_calls'],
+            'errors': performance_metrics['errors'],
+            'error_rate': f"{(performance_metrics['errors'] / performance_metrics['api_calls'] * 100):.2f}%" if performance_metrics['api_calls'] > 0 else "0%"
+        },
+        'device_distribution': performance_metrics['device_stats'],
+        'connection_types': performance_metrics['connection_types'],
+        'resource_usage': {
+            'memory': {
+                'avg': f"{calculate_avg(performance_metrics['memory_usage']):.1f}MB",
+                'p95': f"{calculate_percentile(performance_metrics['memory_usage'], 0.95):.1f}MB"
+            },
+            'bandwidth': {
+                'avg': f"{calculate_avg(performance_metrics['bandwidth_usage']):.1f}KB",
+                'total': f"{sum(performance_metrics['bandwidth_usage']):.1f}KB"
+            }
+        }
+    }
+    
+    template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>性能监控面板</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {
+                font-family: system-ui;
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 20px;
+                background: #f5f5f5;
+            }
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 20px;
+                margin-top: 20px;
+            }
+            .card {
+                background: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-title {
+                font-size: 1.2em;
+                font-weight: bold;
+                margin-bottom: 15px;
+                color: #333;
+            }
+            .stat-row {
+                display: flex;
+                justify-content: space-between;
+                margin: 8px 0;
+                padding: 4px 0;
+                border-bottom: 1px solid #eee;
+            }
+            .stat-label {
+                color: #666;
+            }
+            .stat-value {
+                font-weight: 500;
+                color: #333;
+            }
+            .header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .refresh-btn {
+                padding: 8px 16px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+            }
+            .refresh-btn:hover {
+                background: #45a049;
+            }
+            .last-update {
+                color: #666;
+                font-size: 0.9em;
+                text-align: right;
+                margin-top: 10px;
+            }
+        </style>
+        <script>
+            function refreshPage() {
+                location.reload();
+            }
+            // 每30秒自动刷新
+            setInterval(refreshPage, 30000);
+        </script>
+    </head>
+    <body>
+        <div class="header">
+            <h1>性能监控面板</h1>
+            <button class="refresh-btn" onclick="refreshPage()">刷新数据</button>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <div class="card-title">缓存效率</div>
+                {% for key, value in stats.cache_efficiency.items() %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ key }}</span>
+                    <span class="stat-value">{{ value }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="card">
+                <div class="card-title">响应时间</div>
+                {% for key, value in stats.response_times.items() %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ key }}</span>
+                    <span class="stat-value">{{ value }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="card">
+                <div class="card-title">Web Vitals</div>
+                {% for metric, values in stats.web_vitals.items() %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ metric }}</span>
+                    <span class="stat-value">
+                        avg: {{ values.avg }}, p75: {{ values.p75 }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="card">
+                <div class="card-title">API统计</div>
+                {% for key, value in stats.api_stats.items() %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ key }}</span>
+                    <span class="stat-value">{{ value }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="card">
+                <div class="card-title">设备分布</div>
+                {% for device, count in stats.device_distribution.items() %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ device }}</span>
+                    <span class="stat-value">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="card">
+                <div class="card-title">网络类型</div>
+                {% for conn_type, count in stats.connection_types.items() %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ conn_type }}</span>
+                    <span class="stat-value">{{ count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="card">
+                <div class="card-title">资源使用</div>
+                {% for resource, metrics in stats.resource_usage.items() %}
+                <div class="stat-row">
+                    <span class="stat-label">{{ resource }}</span>
+                    <span class="stat-value">
+                        {% for key, value in metrics.items() %}
+                            {{ key }}: {{ value }}
+                            {% if not loop.last %}, {% endif %}
+                        {% endfor %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="last-update">
+            最后更新时间: {{ now.strftime('%Y-%m-%d %H:%M:%S') }}
+        </div>
+    </body>
+    </html>
+    """
+    return render_template_string(template, stats=stats, now=datetime.now())
+
+# 缓存配置
     try:
         if not request.is_json:
             return jsonify({
@@ -44,7 +373,7 @@ def collect_metrics():
         # 记录内存使用情况
         if metrics_data.get('memory'):
             performance_metrics['memory_usage'].append({
-                'timestamp': time.time(),
+                'timestamp': t.time(),
                 'used': metrics_data['memory'].get('usedJSHeapSize', 0),
                 'total': metrics_data['memory'].get('totalJSHeapSize', 0)
             })
@@ -56,7 +385,7 @@ def collect_metrics():
                 for resource in metrics_data['resourceTiming']
             )
             performance_metrics['bandwidth_usage'].append({
-                'timestamp': time.time(),
+                'timestamp': t.time(),
                 'bytes': total_transfer
             })
         
@@ -76,7 +405,7 @@ cache = {
     'error_count': 0
 }
 
-# 性能监控配置
+# 初始化性能指标
 performance_metrics = {
     'api_calls': 0,
     'cache_hits': 0,
