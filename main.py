@@ -126,6 +126,7 @@ def generate_html(members_list, heads_list, id_list):
         '    <meta name="viewport" content="width=device-width, initial-scale=1">',
         '    <meta name="description" content="StudioJade工作室官方网站">',
         '    <link rel="stylesheet" href="https://s4.zstatic.net/npm/bulma/css/bulma.min.css">',
+        '    <link rel="icon" href="https://jiashu.jsdmirror.com/gh/StudioJade/web/logo.webp">'
         '    <style>',
         '        .media-left { display: flex; align-items: center; }',
         '        .is-rounded { border-radius: 50%; }',
