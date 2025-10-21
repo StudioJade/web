@@ -1,4 +1,5 @@
 from flask import Flask, make_response, render_template_string
+from flask_cors import CORS
 import requests as r
 import datetime as dt
 from datetime import datetime
@@ -6,6 +7,7 @@ import time as t
 import os
 
 app = Flask(__name__)
+CORS(app)
 
 # 缓存配置
 CACHE_DURATION = 600  # 缓存10分钟
