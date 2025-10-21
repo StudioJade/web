@@ -227,6 +227,14 @@ def home():
     response = make_response(generate_html(members_list, heads_list, id_list))
     response.headers['Cache-Control'] = 'public, max-age=300'  # 浏览器缓存5分钟
     return response
+@app.route('/contributors')
+def contributors():
+    """贡献者路由，显示所有贡献者信息"""
+    return '''
+<a href="https://github.com/studiojade/web/graphs/contributors">
+    <img src="https://contri.buzz/api/wall?repo=studiojade/web&onlyAvatars=true" alt="Contributors' Wall for StudioJade/web" />
+</a>
+'''
 
 if __name__ == '__main__':
     app.run(debug=True)
