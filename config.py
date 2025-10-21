@@ -9,4 +9,4 @@ threads = 2
 # 超时时间
 timeout = 600
 # gunicorn + apscheduler场景下，解决多worker运行定时任务重复执行的问题
-preload_app = True
+preload_app = False
