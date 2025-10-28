@@ -144,6 +144,11 @@ def generate_html(members_list, heads_list, id_list):
         '                padding: 12px;',
         '            }',
         '        }',
+        '        .jss{'
+        '            background: linear-gradient(135deg, #c850c0, #4158d0);',
+        '            -webkit-background-clip: text;',
+        '            -webkit-text-fill-color: transparent;',
+        '        }',
         '    </style>',
         '</head>',
         '<body>',
@@ -184,6 +189,7 @@ def generate_html(members_list, heads_list, id_list):
         '    </nav>',
         
         # 工作室简介
+        '    <div><p class="title is-2">我们是</p><p id="studionb" class="title is-2 jss">充满活力的(dom明天写)</p><p class="title is-2">工作室</p></div>',
         '    <section class="section">',
         '        <h5 class="subtitle is-5">工作室简介</h5>',
         f'        <p>本工作室创建于2024/02/16，距今已有 {delta.days} 天</p>',
